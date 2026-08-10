@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>English Coach</title>
+<style>
+body{margin:0;background:#f4f6fb;color:#172033;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{max-width:700px;margin:auto;padding:18px}.top,.card{background:white;border-radius:20px;padding:20px;margin-bottom:14px;box-shadow:0 5px 20px #0000000d}
+.top{background:linear-gradient(135deg,#4f46e5,#7c3aed);color:white}.tag{font-size:12px}.stats{display:flex;gap:10px}.stat{flex:1;background:white;border-radius:16px;padding:14px}.num{font-size:23px;font-weight:800}button{border:0;border-radius:12px;padding:13px 17px;background:#4f46e5;color:white;font-weight:700;margin:6px 5px 0 0}button.gray{background:#edf0f6;color:#222}input[type=text]{width:100%;padding:14px;border:1px solid #ccd2de;border-radius:12px;font-size:17px;box-sizing:border-box}.q{font-size:22px;font-weight:700;margin:18px 0}.choice{display:block;padding:13px;border:1px solid #ddd;border-radius:12px;margin:8px 0}.feedback{padding:14px;border-radius:12px;margin-top:12px}.good{background:#e9f8ee}.bad{background:#fff0f0}.hidden{display:none}.bar{height:9px;background:#e5e7eb;border-radius:9px}.fill{height:100%;background:#4f46e5;width:0;border-radius:9px}
+</style>
+</head>
+<body>
+<main>
+<div class="top"><b>ENGLISH COACH</b><h1>Твой путь к B1 🚀</h1><p>Учись → исправляй ошибки → повторяй → прогрессируй.</p></div>
+
+<div class="stats">
+<div class="stat"><small>Уровень</small><div class="num" id="level">A1</div></div>
+<div class="stat"><small>Точность</small><div class="num" id="acc">0%</div></div>
+<div class="stat"><small>Серия</small><div class="num" id="streak">0 🔥</div></div>
+</div>
+
+<div class="card">
+<h2>Прогресс</h2>
+<div class="bar"><div class="fill" id="fill"></div></div>
+<p id="prog">0 правильных ответов</p>
+<button onclick="start()">▶ Начать тренировку</button>
+<button class="gray" onclick="showErrors()">Ошибки</button>
+</div>
+
+<div class="card">
+<small id="info">Готов?</small>
+<div class="q" id="question">Нажми «Начать тренировку».</div>
+<div id="area"></div>
+<div id="feedback" class="feedback hidden"></div>
+<button id="check" class="hidden" onclick="check()">Проверить</button>
+<button id="next" class="gray hidden" onclick="next()">Следующее</button>
+</div>
+
+<div class="card hidden" id="errors">
+<h2>Мои ошибки</h2>
+<div id="errorList"></div>
+</div>
+</main>
+
+<script>
+const tasks=[
+["Я каждый день изучаю английский.","I study English every day.","В Present Simple с I используется обычная форма глагола."],
+["Он живёт в Алматы.","He lives in Almaty.","После he/she/it обычно добавляется -s."],
+["Мы часто смотрим фильмы.","We often watch movies.","С we используется обычная форма watch."],
+["Я обычно встаю в семь утра.","I usually get up at seven in the morning.","usually = обычно; get up = вставать."],
+["Мне нравится смотреть фильмы.","I like watching movies.","После like можно использовать форму -ing."],
+["Я хочу говорить по-английски свободно.","I want to speak English fluently.","После want используем to + глагол."]
+];
+
+let s=JSON.parse(localStorage.getItem("englishCoach")||'{"correct":0,"total":0,"streak":0,"errors":{}}');
+let current=[],i=0,answered=false;
+
+const $=id=>document.getElementById(id);
+const norm=x=>x.toLowerCase().replace(/[.,!?']/g,"").replace(/\s+/g," ").trim();
+
+function save(){localStorage.setItem("englishCoach",JSON.stringify(s));stats()}
+
+function stats(){
+ let a=s.total?Math.round(s.correct/s.total*100):0;
+ let l=s.correct>=20?"A2":"A1";
+ if(s.correct>=40)l="B1";
+ $("level").textContent=l;
+ $("acc").textContent=a+"%";
+ $("streak").textContent=s.streak+" 🔥";
+ $("prog").textContent=s.correct+" правильных ответов";
+ $("fill").style.width=Math.min(100,s.correct/40*100)+"%";
+}
+
+function start(){
+ current=[...tasks].sort(()=>Math.random()-.5).slice(0,4);
+ i=0;show();
+}
+
+function show(){
+ answered=false;
+ let t=current[i];
+ $("info").textContent="Задание "+(i+1)+" из "+current.length;
+ $("question").textContent=t[0];
+ $("area").innerHTML='<input id="answer" type="text" placeholder="Напиши перевод на английском">';
+ $("answer").onkeydown=e=>{if(e.key==="Enter")check()};
+ $("feedback").className="feedback hidden";
+ $("check").classList.remove("hidden");
+ $("next").classList.add("hidden");
+}
+
+function check(){
+ if(answered)return;
+ let t=current[i],a=$("answer").value.trim();
+ if(!a)return;
+ let ok=norm(a)===norm(t[1]);
+ s.total++;
+ if(ok){
+  s.correct++;s.streak++;
+  $("feedback").className="feedback good";
+  $("feedback").innerHTML="✅ Правильно!<br><b>"+t[1]+"</b>";
+ }else{
+  s.streak=0;
+  s.errors[t[0]]=(s.errors[t[0]]||0)+1;
+  $("feedback").className="feedback bad";
+  $("feedback").innerHTML="❌ Пока неправильно.<br><b>Правильный вариант: "+t[1]+"</b><br>"+t[2];
+ }
+ answered=true;
+ save();
+ $("feedback").classList.remove("hidden");
+ $("check").classList.add("hidden");
+ $("next").classList.remove("hidden");
+}
+
+function next(){
+ if(i<current.length-1){i++;show()}
+ else{
+  $("question").textContent="🎉 Тренировка завершена!";
+  $("area").innerHTML="";
+  $("check").classList.add("hidden");
+  $("next").classList.add("hidden");
+  $("feedback").className="feedback good";
+  $("feedback").textContent="Отличная работа! Ошибки сохранены.";
+ }
+}
+
+function showErrors(){
+ $("errors").classList.remove("hidden");
+ let e=Object.entries(s.errors);
+ $("errorList").innerHTML=e.length
+ ?e.map(x=>"<p>❌ "+x[0]+" — "+x[1]+" раз</p>").join("")
+ :"<p>Ошибок пока нет 🎉</p>";
+}
+
+stats();
+</script>
+</body>
+</html>
